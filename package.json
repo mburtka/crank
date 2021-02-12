@@ -1,0 +1,13 @@
+{
+  "name": "crank",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "run": "npm run build && polymer serve"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+
+<script type="module">
+	import {render} from "../dist/index.js";
+
+	window.data1 = {
+		tb1: "matt",
+		tb2: "burtka",
+		l1: "first",
+		l2: "last",
+	};
+
+	window.data2 = {
+		tb1: "wrote",
+		tb2: "this",
+		l1: "first",
+		l2: "last",
+	};
+
+	window.data3 = {
+		tb1: "templating",
+		tb2: "engine",
+		l1: "first",
+		l2: "last",
+	};
+
+	(async () => {
+		window.update = await render("./demo.html", document.body, data1);
+	})();
+</script>
