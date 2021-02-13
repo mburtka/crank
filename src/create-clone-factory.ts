@@ -37,7 +37,7 @@ export function createCloneFactory({parts, children, params, template: {content}
 			for (const param of params)
 			{
 				const value = d[param];
-				const changed = shouldUpdate(value, state[param]);
+				const changed = value !== state[param];
 				if (changed) {
 					state[param] = value;
 					updated.add(param);
@@ -45,7 +45,6 @@ export function createCloneFactory({parts, children, params, template: {content}
 			}
 			if (updated.size === 0)
 				return;
-			fragmentState.set(fragment, state);
 			for (const updater of updaters)
 				updater(state, updated);
 		};
@@ -63,8 +62,7 @@ function createChildUpdaterFactory(element: Element, {clone, data}: ChildParseRe
 	};
 }
 
-type MaybeIdPart = Part & { id?: string }
-function createUpdater(node: Node, part: MaybeIdPart): Updater {
+function createUpdater(node: Node, part: Part & { id?: string }): Updater {
 	return (state, updated) => {
 		const {shouldUpdate, processor, id} = part;
 		const {args, shouldUpdate: update} = shouldUpdate(part, updated, state);
@@ -74,8 +72,4 @@ function createUpdater(node: Node, part: MaybeIdPart): Updater {
 			else
 				processor.apply(null, [node, ...args]);
 	}
-}
-
-function shouldUpdate(value: any, old: any) {
-	return value !== old;
 }
