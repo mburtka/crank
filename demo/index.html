@@ -1,31 +1,28 @@
 <!DOCTYPE html>
 <meta charset="utf-8"/>
 
+<template id="test">
+	<div>
+		<label @for="first">First</label>
+		<input id="first" type="text"/>
+	</div>
+	<t-i src="#test2"></t-i>
+	<div>
+		<label for="last">@{last}</label>
+		<input id="last" type="text"/>
+	</div>
+</template>
+
+<template id="test2">
+	<span style="color:blue;">@{first}</span>
+</template>
+
 <script type="module">
 	import {render} from "../dist/index.js";
-
-	window.data1 = {
-		tb1: "matt",
-		tb2: "burtka",
-		l1: "first",
-		l2: "last",
-	};
-
-	window.data2 = {
-		tb1: "wrote",
-		tb2: "this",
-		l1: "first",
-		l2: "last",
-	};
-
-	window.data3 = {
-		tb1: "templating",
-		tb2: "engine",
-		l1: "first",
-		l2: "last",
-	};
-
 	(async () => {
-		window.update = await render("./demo.html", document.body, data1);
+		window.update1 = await render("#test", {first: "first", last: "Last"});
 	})();
+
+	window.data1 = {first: "first", last: "Last"};
+	window.data2 = {first: "Hi", last: "There"};
 </script>
