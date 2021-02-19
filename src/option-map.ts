@@ -1,0 +1,1 @@
+export type OptionMap<T> = { [key: string]: T };

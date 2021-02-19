@@ -1,12 +1,12 @@
-import {Processor} from "./processor";
-import {HasChanged} from "./has-changed";
+import {Component} from "./component"
+import {Updater} from "./updaters";
+import {ShouldUpdate} from "./should-update";
 
-export interface Part {
-	processor: Processor,
-	params?: string[],
-	shouldUpdate: HasChanged | Symbol,
-}
-
-export interface AttributePart extends Part {
-	id: string,
+export type Part = {
+	component: Component,
+	node: Element | Text,
+	updater: Updater,
+	shouldUpdate: ShouldUpdate,
+	id?: string,
+	params?: Set<string>,
 }
