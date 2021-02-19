@@ -1,12 +1,19 @@
 import {ChildParseResult, ParseResult} from "./parse";
-import {filter} from "./defaults";
-import {Part} from "./part";
+import {filter, preProcessOnly} from "./defaults";
+import {AttributePart, Part} from "./part";
+import {HasChanged} from "./has-changed";
 
 export type CloneFactory = () => { fragment: DocumentFragment, update: ((data: {}) => void) };
 
 type Updater = (state: {}, updated: Set<string>) => void;
 
 const fragmentState = new WeakMap<DocumentFragment, {}>();
+const componentState = new WeakMap<DocumentFragment, {state: any, ids: Map<string, any>}>();
+const elementFragments = new WeakMap<Element, DocumentFragment>();
+
+export function getState(element: Element, id: string = null) {
+
+}
 
 export function createCloneFactory({parts, children, params, template: {content}}: ParseResult ): CloneFactory {
 	return () => {
@@ -26,7 +33,10 @@ export function createCloneFactory({parts, children, params, template: {content}
 				const nodeParts = parts.get(i++);
 				if (nodeParts)
 					for (const part of nodeParts)
-						updaters.push(createUpdater(current, part));
+						if (part.shouldUpdate === preProcessOnly)
+							preProcess(current as Element, part as AttributePart);
+						else
+							updaters.push(createUpdater(current, part));
 			}
 			current = iter.nextNode();
 		} while (current);
@@ -52,6 +62,11 @@ export function createCloneFactory({parts, children, params, template: {content}
 	};
 }
 
+function preProcess(element: Element, {id, processor}: AttributePart) {
+	const f = e => processor.call(null, e);
+	element.addEventListener(id, f);
+}
+
 function createChildUpdaterFactory(element: Element, {clone, data}: ChildParseResult): (() => Updater)  {
 	const {fragment, update} = clone();
 	return () => {
@@ -65,7 +80,7 @@ function createChildUpdaterFactory(element: Element, {clone, data}: ChildParseRe
 function createUpdater(node: Node, part: Part & { id?: string }): Updater {
 	return (state, updated) => {
 		const {shouldUpdate, processor, id} = part;
-		const {args, shouldUpdate: update} = shouldUpdate(part, updated, state);
+		const {args, shouldUpdate: update} = (shouldUpdate as HasChanged)(part, updated, state);
 		if (update)
 			if (id !== undefined)
 				processor.apply(null, [node, id, ...args]);

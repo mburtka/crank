@@ -1,0 +1,1 @@
+export type StateFactory = (...args: any[]) => any | any

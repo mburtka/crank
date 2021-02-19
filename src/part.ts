@@ -3,12 +3,10 @@ import {HasChanged} from "./has-changed";
 
 export interface Part {
 	processor: Processor,
-	params: string[],
-	shouldUpdate: HasChanged
+	params?: string[],
+	shouldUpdate: HasChanged | Symbol,
 }
 
 export interface AttributePart extends Part {
 	id: string,
 }
-
-export interface TextPart extends Part {}

@@ -1,9 +1,13 @@
 import {map} from "./mapper";
-import {filter} from "./defaults";
-import {AttributePart, Part, TextPart} from "./part";
+import {filter, preProcessOnly} from "./defaults";
+import {AttributePart, Part} from "./part";
 import {createCloneFactory, CloneFactory} from "./create-clone-factory";
-import {ProcessorMap} from "./processor";
+import {Processor, ProcessorMap} from "./processor";
 import {HasChangedMap} from "./has-changed";
+
+const processorToken = "@";
+const eventToken = "!";
+const hasChangedToken = "#";
 
 export type ParseOptions = {
 	processors: ProcessorMap,
@@ -25,7 +29,10 @@ export type ParseResult = {
 
 type Maybe<T> = T | null;
 
-const textMatch = /^@([^{!]*)(?:!([^{]*))?{([^}]+)}$/;
+const textMatch = ((p, c) => new RegExp(`^${p}([^{${c}]*)(?:${c}([^{]*))?{([^}]+)}$`))(
+	processorToken,
+	hasChangedToken
+);
 const cache = new Map<string, CloneFactory>();
 
 export async function component(src: string, options: ParseOptions): Promise<CloneFactory> {
@@ -52,8 +59,13 @@ async function parse(template: HTMLTemplateElement, options: ParseOptions): Prom
 	const add = ((index: number, ps: Part[]) => {
 		parts.set(index, ps);
 		for (const part of ps)
-			for (const param of part.params)
+		{
+			const {params: maybe} = part;
+			if (!maybe)
+				continue;
+			for (const param of maybe)
 				params.add(param);
+		}
 	});
 	const importName = options.templateImportNodeName.toLowerCase();
 	do {
@@ -73,7 +85,7 @@ async function parse(template: HTMLTemplateElement, options: ParseOptions): Prom
 			if (isArray && (nodeParts as AttributePart[]).length !== 0)
 				add(i++, nodeParts as Part[]);
 			else if (!isArray && nodeParts !== null)
-				add(i++, [nodeParts as TextPart]);
+				add(i++, [nodeParts as Part]);
 			else
 				i++;
 		}
@@ -111,12 +123,17 @@ function parseElement(node: Element, options): AttributePart[] {
 	return parts;
 }
 
-function parseAttribute(attribute: Attr, {processors, hasChanged}: ParseOptions): AttributePart {
-	const {name, value} = attribute;
-	const [config, rest] = name.split("@");
+function parseAttribute({name, value}: Attr, options: ParseOptions): Part {
+	return name.startsWith(eventToken)
+		? parseEvent(name.substring(1), value, options)
+		: parseAttributeValue(name, value, options);
+}
+
+function parseAttributeValue(name: string, value: string, {processors, hasChanged}: ParseOptions): AttributePart {
+	const [config, rest] = name.split(processorToken);
 	if (rest === undefined)
 		return null;
-	const [changeConfig, final] = rest.split("!");
+	const [changeConfig, final] = rest.split(hasChangedToken);
 	const [id, shouldUpdate] = final === undefined
 		? [changeConfig, map(hasChanged, "")]
 		: [final, map(hasChanged, changeConfig)];
@@ -124,7 +141,15 @@ function parseAttribute(attribute: Attr, {processors, hasChanged}: ParseOptions)
 	return {id, processor, shouldUpdate, params: value.split(" ")};
 }
 
-function parseText(node: Text, {processors, hasChanged}: ParseOptions): Maybe<TextPart> {
+function parseEvent(id: string, value: string, {processors: {events}, hasChanged}: ParseOptions): AttributePart {
+	const config = map(events, id);
+	const processor = (typeof config === "function"
+		? config
+		: map(config, value)) as Processor;
+	return { id, processor, shouldUpdate: preProcessOnly };
+}
+
+function parseText(node: Text, {processors: {text}, hasChanged}: ParseOptions): Maybe<Part> {
 	const {nodeValue} = node;
 	if (nodeValue === null)
 		return null;
@@ -134,7 +159,7 @@ function parseText(node: Text, {processors, hasChanged}: ParseOptions): Maybe<Te
 		return null;
 	const [_, config, changeConfig, content] = match;
 	const shouldUpdate = map(hasChanged, changeConfig ?? "");
-	const processor = map(processors.text, config);
+	const processor = map(text, config);
 	node.nodeValue = "";
 	return {processor, shouldUpdate, params: content.trim().split(" ")}
 }

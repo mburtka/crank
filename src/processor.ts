@@ -3,18 +3,26 @@ import {Mapper} from "./mapper.js";
 export type ProcessorMap = {
 	attributes: Mapper<Processor>,
 	text: Mapper<Processor>,
+	events: Mapper<Mapper<EventProcessor> | EventProcessor>,
 };
 
-export type Processor = AttributeProcessor | TextProcessor;
+export type Processor = ValueProcessor | EventProcessor;
 
 export const defaultProcessors: ProcessorMap = {
 	attributes: {
 		"": attribute,
+		multi: (e, i, one, two) => e.setAttribute(i, `${one} ${two}`),
+		arr: (e, i, a) => e.setAttribute(i, a.join(" ")),
 	},
+	events: {},
 	text: {
 		"": text,
 	}
 };
+
+type ValueProcessor = AttributeProcessor | TextProcessor;
+
+type EventProcessor = (event: Event) => void;
 
 type AttributeProcessor = (element: Element, id: string, ...values: any[]) => void;
 type TextProcessor = (text: Text, ...values: any[]) => void;
